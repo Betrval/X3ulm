@@ -7335,3 +7335,4 @@ do -- utility
         end
     end
 end
+return library, utility, library.pointers, theme
