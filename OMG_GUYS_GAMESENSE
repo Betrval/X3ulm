@@ -7335,4 +7335,5 @@ do -- utility
         end
     end
 end
+local Languages:GetTranslation = nil
 return library, utility, library.pointers, theme
