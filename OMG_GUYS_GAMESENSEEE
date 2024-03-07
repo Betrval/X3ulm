@@ -1,0 +1,146 @@
+function Languages:GetTranslation(String)
+    return String
+end
+--
+do -- utility
+    function utility:GetTableIndexes(Table, Custom)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table) do
+            Table2[Custom and Value[1] or #Table2 + 1] = Index 
+        end
+        --
+        return Table2
+    end
+    --
+    function utility:ConvertTable(Table1)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table1) do
+            Table2[typeof(Index) ~= "number" and Index or (#Table2 + 1)] = tostring(Value)
+        end
+        --
+        return Table2
+    end
+    --
+    function utility:ConvertString(Value)
+        if typeof(Value) == "Color3" then
+            Value = Value:ToHex()
+        end
+        --
+        return Value
+    end
+    --
+    function utility:Encode(Table)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table) do
+            Table2[Index] = utility:ConvertString(Value)
+        end
+        --
+        return HttpService:JSONEncode(Table2)
+    end
+    --
+    function utility:Decode(Table)
+        return HttpService:JSONDecode(Table)
+    end
+    --
+    function Library:UpdateColor(ColorType, ColorValue)
+        local ColorType = ColorType:lower()
+        --
+        Theme[ColorType] = ColorValue
+        --
+        for Index, Value in pairs(Library.colors) do
+            for Index2, Value2 in pairs(Value) do
+                if Value2 == ColorType then
+                    Index[Index2] = Theme[Value2]
+                end
+            end
+        end
+    end
+    --
+    function Library:UpdateTheme(ThemeType, ThemeValue)
+        if Flags["ConfigTheme_" .. ThemeType] then
+            Flags["ConfigTheme_" .. ThemeType]:Set(ThemeValue)
+        end
+    end
+    --
+    function Library:LoadTheme(ThemeType)
+        if Themes[ThemeType] then
+            local ThemeValue = utility:Decode(Themes[ThemeType][2])
+            --
+            for Index, Value in pairs(ThemeValue) do
+                Library:UpdateTheme(Index, Color3.fromHex(Value)) 
+            end
+        end
+    end
+    --
+    function Library:RefreshConfigList()
+        Flags["ConfigConfiguration_Box"].options = Tyrisware.Configs
+        Flags["ConfigConfiguration_Box"]:Refresh()
+        Flags["ConfigConfiguration_Box"].current = Clamp(Flags["ConfigConfiguration_Box"].current, 0, #Tyrisware.Configs)
+    end
+    --
+    function Library:GetConfig()
+        local Config = ""
+        --
+        for Index, Value in pairs(Flags) do
+            print(Index, Value)
+            if Index ~= "ConfigConfiguration_Box" and Index ~= "ConfigConfiguration_Name" then
+                local Value2 = Value:Get()
+                local Final = ""
+                --
+                if typeof(Value2) == "Color3" then
+                    local Values = Value.current
+                    --
+                    Final = ("rgb(%s,%s,%s,%s)"):format(Values[1], Values[2], Values[3], Values[4])
+                elseif typeof(Value2) == "table" and Value2.Color and Value2.Transparency then
+                    local Values = Value.current
+                    --
+                    Final = ("rgb(%s,%s,%s,%s)"):format(Values[1], Values[2], Values[3], Values[4])
+                elseif Value.mode then
+                    local Values = Value.current
+                    --
+                    Final = ("key(%s,%s,%s)"):format(Values[1] or "nil", Values[2] or "nil", Value.mode)
+                elseif (Value2 ~= nil) then
+                    if typeof(Value2) == "boolean" then
+                        Value2 = ("bool(%s)"):format(tostring(Value2))
+                    elseif typeof(Value2) == "table" then
+                        local New = "table("
+                        --
+                        for Index2, Value3 in pairs(Value2) do
+                            New = New .. Value3 .. ","
+                        end
+                        --
+                        if New:sub(#New) == "," then
+                            New = New:sub(0, #New - 1)
+                        end
+                        --
+                        Value2 = New .. ")"
+                    elseif typeof(Value2) == "string" then
+                        Value2 = ("string(%s)"):format(Value2)
+                    elseif typeof(Value2) == "number" then
+                        Value2 = ("number(%s)"):format(Value2)
+                    end
+                    --
+                    Final = Value2
+                end
+                --
+                Config = Config .. Index .. ": " .. Final .. "\n"
+            end
+        end
+        print("DONE")
+        --
+        return Config .. "[ Tyrisware ]"
+    end
+    --
+    function Library:LoadConfig(Config)
+        if typeof(Config) == "table" then
+            for Index, Value in pairs(Config) do
+                if typeof(Flags[Index]) ~= "nil" then
+                    Flags[Index]:Set(Value)
+                end
+            end
+        end
+    end
+    --
