@@ -1,17 +1,85 @@
+
+repeat wait() until game:IsLoaded() wait()
+game:GetService("Players").LocalPlayer.Idled:connect(function()
+game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+end)
+
+--[[
+    @gs.cc
+]]
+
+-- // Variables
+
 --[[
     @gs.cc
 ]]
 -- // Variables
 local ws, uis, rs, hs, cas, plrs, stats = game:GetService("Workspace"), game:GetService("UserInputService"), game:GetService("RunService"), game:GetService("HttpService"), game:GetService("ContextActionService"), game:GetService("Players"), game:GetService("Stats")
 --
+local playerlistIndividualTweak = nil
+local pListMistToggle = nil
+--
+local aimviewerTargets = {}
+--
+local removeAimviewerTarget = function(target)
+    local newta = {}
+    for i,v in next, aimviewerTargets do
+        if v[1] ~= target then
+            table.insert(newta, v)
+        end
+    end
+    aimviewerTargets = newta
+end
+--
+local isAimviewerTarget = function(target)
+    for _, v in next, aimviewerTargets do
+        if v[1] == target then
+            return true
+        end
+    end
+    return false
+end
+--
 local localplayer = plrs.LocalPlayer
 --
+local ResetMemoryCategory, SetMemoryCategory, SetUpvalueName, SetMetatable, ProfileBegin, GetMetatable, GetConstants, GetRegistry, GetUpvalues, GetConstant, SetConstant, GetUpvalue, ValidLevel, LoadModule, SetUpvalue, ProfileEnd, GetProtos, GetLocals, Traceback, SetStack, GetLocal, DumpHeap, GetProto, SetLocal, GetStack, GetFenv, GetInfo, Info = debug.resetmemorycategory, debug.setmemorycategory, debug.setupvaluename, debug.setmetatable, debug.profilebegin, debug.getmetatable, debug.getconstants, debug.getregistry, debug.getupvalues, debug.getconstant, debug.setconstant, debug.getupvalue, debug.validlevel, debug.loadmodule, debug.setupvalue, debug.profileend, debug.getprotos, debug.getlocals, debug.traceback, debug.setstack, debug.getlocal, debug.dumpheap, debug.getproto, debug.setlocal, debug.getstack, debug.getfenv, debug.getinfo, debug.info
+
+
 local mouse = localplayer:GetMouse()
+--
+local Client = localplayer
+--
+local cZoom, MaxZoom, MinZoom = (workspace.CurrentCamera.CoordinateFrame.p - plrs.LocalPlayer.Character.Head.Position).magnitude, plrs.LocalPlayer.CameraMaxZoomDistance, plrs.LocalPlayer.CameraMinZoomDistance
+local oMaxZoom, oMinZoom = MaxZoom, MinZoom
+--
+local LockScrolling = function()
+    print("LOCK")
+    cZoom, MaxZoom, MinZoom = (workspace.CurrentCamera.CoordinateFrame.p - plrs.LocalPlayer.Character.Head.Position).magnitude, plrs.LocalPlayer.CameraMaxZoomDistance, plrs.LocalPlayer.CameraMinZoomDistance
+    plrs.LocalPlayer.CameraMaxZoomDistance = cZoom
+    plrs.LocalPlayer.CameraMinZoomDistance = cZoom
+end
+local UnlockScrolling = function()
+    print("Unlock")
+    plrs.LocalPlayer.CameraMaxZoomDistance = oMaxZoom
+    plrs.LocalPlayer.CameraMinZoomDistance = oMinZoom
+end
 --
 local Remove = table.remove
 local Unpack = table.unpack
 local Find = table.find
+local Clamp = math.clamp
 -- UI Variables
+if not isfolder("Tyrisware") then
+    makefolder("Tyrisware")
+end
+
+if not isfolder("Tyrisware/Configs") then
+    makefolder("Tyrisware/Configs")
+end
+
+if not isfolder("Tyrisware/Images") then
+    makefolder("Tyrisware/Images")
+end
 local library = {
     drawings = {},
     objects = {},
@@ -25,9 +93,9 @@ local library = {
     hovers = {},
     Relations = {},
     folders = {
-        main = "lsd",
-        assets = "lsd/Images",
-        configs = "lsd/Configs"
+        main = "Tyrisware",
+        assets = "Tyrisware/Images",
+        configs = "Tyrisware/Configs"
     },
     shared = {
         initialized = false,
@@ -69,11 +137,18 @@ local theme = {
     textdark = Color3.fromRGB(175, 175, 175),
     textborder = Color3.fromRGB(0, 0, 0),
     cursoroutline = Color3.fromRGB(10, 10, 10),
-    font = 1,
-    textsize = 14
+    font = 2,
+    textsize = 13
 }
+
+
+
+
 -- // utility Functions
-do                         -- 0     
+do
+    --
+    
+    --
     function utility:Size(xScale,xOffset,yScale,yOffset,instance)
         if instance then
             local x = xScale*instance.Size.x+xOffset
@@ -88,6 +163,51 @@ do                         -- 0
             --
             return Vector2.new(x,y)
         end
+    end
+    --
+    function utility:GetClipboard()
+        print("GETCLIPBOARD")
+        repeat task.wait() until iswindowactive()
+        task.wait()
+        local Text = ""
+        --
+        local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+        syn.protect_gui(ScreenGui)
+        ScreenGui.Parent = game:GetService("CoreGui")
+        --
+        local TextBox = Instance.new("TextBox", game)
+        TextBox.Size = UDim2.new(0, 0, 0, 0)
+        TextBox.Position = UDim2.new(-999, 0, -999, 0)
+        TextBox.Parent = ScreenGui
+        TextBox.Text = ""
+        --
+        TextBox:CaptureFocus()
+        --
+        keypress(0x11)
+        keypress(0x56) 
+        task.wait()
+        keyrelease(0x56)
+        keyrelease(0x11)
+        --
+        if TextBox.Text == "" then
+            TextBox:CaptureFocus()
+            --
+            task.wait()
+            --
+            keypress(0x11)
+            keypress(0x56) 
+            task.wait()
+            keyrelease(0x56)
+            keyrelease(0x11)
+        end
+        --
+        Text = TextBox.Text
+        --
+        TextBox:Destroy()
+        ScreenGui:Destroy()
+
+        --
+        return Text
     end
     --
     function utility:Position(xScale,xOffset,yScale,yOffset,instance)
@@ -121,8 +241,8 @@ do                         -- 0
             frame.Color = Color3.fromRGB(255,255,255)
             frame.Size = Vector2.new(100,100)
             frame.Position = Vector2.new(0,0)
-            frame.ZIndex = 0
-            frame.Transparency = 1
+            frame.ZIndex = 50
+            frame.Transparency = library.shared.initialized and 1 or 0
             instance = frame
         elseif instanceType == "TextLabel" or instanceType == "textlabel" then
             local text = Drawing.new("Text")
@@ -131,8 +251,8 @@ do                         -- 0
             text.Outline = true
             text.Center = false
             text.Color = Color3.fromRGB(255,255,255)
-            text.ZIndex = 0
-            text.Transparency = 1
+            text.ZIndex = 50
+            text.Transparency = library.shared.initialized and 1 or 0
             instance = text
         elseif instanceType == "Triangle" or instanceType == "triangle" then
             local frame = Drawing.new("Triangle")
@@ -140,16 +260,16 @@ do                         -- 0
             frame.Filled = true
             frame.Thickness = 0
             frame.Color = Color3.fromRGB(255,255,255)
-            frame.ZIndex = 0
-            frame.Transparency = 1
+            frame.ZIndex = 50
+            frame.Transparency = library.shared.initialized and 1 or 0
             instance = frame
         elseif instanceType == "Image" or instanceType == "image" then
             local image = Drawing.new("Image")
             image.Size = Vector2.new(12,19)
             image.Position = Vector2.new(0,0)
             image.Visible = true
-            image.ZIndex = 0
-            image.Transparency = 1
+            image.ZIndex = 50
+            image.Transparency = library.shared.initialized and 1 or 0
             instance = image
         elseif instanceType == "Circle" or instanceType == "circle" then
             local circle = Drawing.new("Circle")
@@ -159,19 +279,19 @@ do                         -- 0
             circle.NumSides = 30
             circle.Filled = true
             circle.Transparency = 1
-            circle.ZIndex = 0
+            circle.ZIndex = 50
             circle.Radius = 50
-            circle.Transparency = 1
+            circle.Transparency = library.shared.initialized and 1 or 0
             instance = circle
         elseif instanceType == "Quad" or instanceType == "quad" then
             local quad = Drawing.new("Quad")
             quad.Visible = false
             quad.Color = Color3.fromRGB(255, 255, 255)
             quad.Thickness = 1.5
-            quad.Transparency = 1
-            quad.ZIndex = 0
+            quad.Transparency = 1 
+            quad.ZIndex = 50
             quad.Filled = false
-            quad.Transparency = 1
+            quad.Transparency = library.shared.initialized and 1 or 0
             instance = quad
         elseif instanceType == "Line" or instanceType == "line" then
             local line = Drawing.new("Line")
@@ -180,8 +300,8 @@ do                         -- 0
             line.Thickness = 1.5
             line.Transparency = 1
             line.Thickness = 1.5
-            line.ZIndex = 0
-            line.Transparency = 1
+            line.ZIndex = 50
+            line.Transparency = library.shared.initialized and 1 or 0
             instance = line
         end
         --
@@ -379,6 +499,8 @@ do                         -- 0
                 connection:Disconnect()
             end
         end)
+        --
+        
     end
     --
     function utility:Combine(table1, table2)
@@ -420,6 +542,7 @@ do                         -- 0
         end
     end
 end
+
 -- // Library Functions
 do
     library.__index = library
@@ -439,7 +562,7 @@ do
         --
         theme.accent = accent
         --
-        local window = {pages = {}, loader = true, isVisible = false, pageammount = pageammount, callback = callback, wminfo = "", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
+        local window = {pages = {}, loader = true, isVisible = false, pageammount = pageammount, callback = callback, wminfo = "$$$$$ AntarcticaWare $$$$$ || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
         --
         local main_frame = utility:Create("Frame", {Vector2.new(0,0)}, {
             Size = utility:Size(0, size.X, 0, size.Y),
@@ -700,7 +823,7 @@ do
                 Color = theme.cursoroutline,
                 Thickness = 2.5,
                 Filled = false,
-                ZIndex = 2,
+                ZIndex = 65,
                 Hidden = true
             });window.cursor["cursor"] = cursor
             --
@@ -712,7 +835,7 @@ do
                 Color = theme.accent,
                 Filled = true,
                 Thickness = 0,
-                ZIndex = 2,
+                ZIndex = 65,
                 Hidden = true
             });window.cursor["cursor_inline"] = cursor_inline
             --
@@ -775,8 +898,13 @@ do
                 window.dragging = true
                 window.drag = Vector2.new(mouseLocation.X - main_frame.Position.X, mouseLocation.Y - main_frame.Position.Y)
             end
+            
             --
             if window.currentContent.textbox then
+                if uis:IsKeyDown(Enum.KeyCode["LeftControl"]) and uis:IsKeyDown(Enum.KeyCode.V) then
+                    window.currentContent.textbox.Fire((utility:GetClipboard())) 
+                    return
+                end
                 if Find(utility.Keyboard.Letters, utility:InputToString(Input.KeyCode)) then
                     if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
                         window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):upper())
@@ -843,11 +971,11 @@ do
             end
         end
         --
-        utility:Connection(uis.InputBegan,function(Input)
+        utility:Connection(uis.InputBegan,function(Input, Typing)
             for _, func in pairs(library.began) do
                 if not window.dragging then
                     local e,s = pcall(function()
-                        func(Input)
+                        func(Input, Typing)
                     end)
                 else
                     break
@@ -1009,6 +1137,10 @@ do
             Color = "lightcontrast"
         }
         --
+        function window:UpdateTitle(newtitle)
+            title.Text = newtitle
+        end
+        --
         function ColorLerp(Value, MinColor, MaxColor)
             if Value <= 0 then return MaxColor end
             if Value >= 100 then return MinColor end
@@ -1021,7 +1153,519 @@ do
         end
         -- // Esp Preview
         do
-        
+            window.VisualPreview = {
+                Size = {X = 5, Y = 0},
+                Color1 = Color3.fromRGB(0, 255, 0),
+                Color2 = Color3.fromRGB(255, 0, 0),
+                HealthBarFade = 0,
+                Fading = false,
+                State = false,
+                Visible = true,
+                Drawings = {},
+                Components = {
+                    Box = {
+                        Outline = nil,
+                        Box = nil,
+                        Fill = nil
+                    },
+                    HealthBar = {
+                        Outline = nil,
+                        Box = nil,
+                        Value = nil
+                    },
+                    Skeleton = {
+                        Head = {},
+                        Torso = {},
+                        LeftArm = {},
+                        RightArm = {},
+                        Hips = {},
+                        LeftLeg = {},
+                        RightLeg = {},
+                        HipsTorso = {}
+                    },
+                    Chams = {
+                        Head = {},
+                        Torso = {},
+                        LeftArm = {},
+                        RightArm = {},
+                        LeftLeg = {},
+                        RightLeg = {}
+                    },
+                    Title = {
+                        Text = nil
+                    },
+                    Distance = {
+                        Text = nil
+                    },
+                    Tool = {
+                        Text = nil
+                    },
+                    Flags = {
+                        Text = nil
+                    }
+                }
+            }
+            --
+            local esppreview_frame = utility:Create("Frame", {Vector2.new(main_frame.Size.X + 5,0), main_frame}, {
+                Size = utility:Size(0, 236, 0, 339),
+                Position = utility:Position(1, 5, 0, 0, main_frame),
+                Color = theme.outline
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_frame] = {
+                Color = "outline"
+            }
+            --
+            local esppreview_inline = utility:Create("Frame", {Vector2.new(1,1), esppreview_frame}, {
+                Size = utility:Size(1, -2, 1, -2, esppreview_frame),
+                Position = utility:Position(0, 1, 0, 1, esppreview_frame),
+                Color = theme.accent
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_inline] = {
+                Color = "accent"
+            }
+            --
+            local esppreview_inner = utility:Create("Frame", {Vector2.new(1,1), esppreview_inline}, {
+                Size = utility:Size(1, -2, 1, -2, esppreview_inline),
+                Position = utility:Position(0, 1, 0, 1, esppreview_inline),
+                Color = theme.lightcontrast
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_inner] = {
+                Color = "lightcontrast"
+            }
+            --
+            local esppreview_title = utility:Create("TextLabel", {Vector2.new(4,2), esppreview_inner}, {
+                Text = "ESP Preview",
+                Size = theme.textsize,
+                Font = theme.font,
+                Color = theme.textcolor,
+                OutlineColor = theme.textborder,
+                Position = utility:Position(0, 4, 0, 2, esppreview_inner)
+            }, window.VisualPreview.Drawings)
+            --
+            local esppreview_visiblebutton = utility:Create("TextLabel", {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner}, {
+                Text = "O",
+                Size = theme.textsize,
+                Font = theme.font,
+                Color = theme.textcolor,
+                OutlineColor = theme.textborder,
+                Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_title] = {
+                OutlineColor = "textborder",
+                Color = "textcolor"
+            }
+            --
+            local esppreview_inner_inline = utility:Create("Frame", {Vector2.new(4,18), esppreview_inner}, {
+                Size = utility:Size(1, -8, 1, -22, esppreview_inner),
+                Position = utility:Position(0, 4, 0, 18, esppreview_inner),
+                Color = theme.inline
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_inner_inline] = {
+                Color = "inline"
+            }
+            --
+            local esppreview_inner_outline = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_inline}, {
+                Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline),
+                Position = utility:Position(0, 1, 0, 1, esppreview_inner_inline),
+                Color = theme.outline
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_inner_outline] = {
+                Color = "outline"
+            }
+            --
+            local esppreview_inner_frame = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_outline}, {
+                Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline),
+                Position = utility:Position(0, 1, 0, 1, esppreview_inner_outline),
+                Color = theme.darkcontrast
+            }, window.VisualPreview.Drawings)
+            --
+            library.colors[esppreview_inner_frame] = {
+                Color = "darkcontrast"
+            }
+            --
+            local esppreview_frame_previewbox = utility:Create("Frame", {Vector2.new(10,10), esppreview_inner_frame}, {
+                Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame),
+                Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame),
+                Color = Color3.fromRGB(0, 0, 0),
+                Transparency = 0
+            })
+            --
+            local BoxSize = utility:Size(1, -7, 1, -55, esppreview_frame_previewbox)
+            local healthbaroutline
+            local healthbar
+            local healthvalue
+            local boxoutline
+            --
+            function window.VisualPreview:UpdateHealthBar()
+                window.VisualPreview.HealthBarFade = window.VisualPreview.HealthBarFade + 0.015
+                local Smoothened = (math.acos(math.cos(window.VisualPreview.HealthBarFade * math.pi)) / math.pi)
+                local Size = (healthbaroutline.Size.Y - 2) * Smoothened
+                local Color = ColorLerp(Smoothened, window.VisualPreview.Color1, window.VisualPreview.Color2)
+                --
+                healthvalue.Text = "<- " .. math.round(Smoothened * 100)
+                healthvalue.Color = Color
+                healthbar.Color = Color
+                healthbar.Size = utility:Size(1, -2, 0, Size, healthbaroutline)
+                healthbar.Position = utility:Position(0, 1, 1, -Size - 1, healthbaroutline)
+                window.VisualPreview:UpdateHealthValue(5)
+                utility:UpdateOffset(healthbar, {Vector2.new(1, healthbaroutline.Size.Y - Size - 1), healthbaroutline})
+            end
+            --
+            function window.VisualPreview:UpdateHealthValue(Size)
+                local New = Vector2.new(healthbar.Position.X + (5 - Size), math.clamp(healthbar.Position.Y + 5, 0, (healthbar.Position.Y) + (healthbar.Size.Y) - 18))
+                --
+                healthvalue.Position = New
+                utility:UpdateOffset(healthvalue, {Vector2.new(5 - Size, New.Y - healthbar.Position.Y), healthbar})
+            end
+            --
+            function window.VisualPreview:ValidateSize(Side, Size)
+                if not (window.VisualPreview.Size[Side] == Size) then
+                    window.VisualPreview.Size[Side] = Size
+                    --
+                    esppreview_frame.Size = utility:Size(0, 231 + window.VisualPreview.Size[Side], 0, 339)
+                    esppreview_inline.Size = utility:Size(1, -2, 1, -2, esppreview_frame)
+                    esppreview_inner.Size = utility:Size(1, -2, 1, -2, esppreview_inline)
+                    esppreview_inner_inline.Size = utility:Size(1, -8, 1, -22, esppreview_inner)
+                    esppreview_inner_outline.Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline)
+                    esppreview_inner_frame.Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline)
+                    esppreview_frame_previewbox.Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame)
+                    --
+                    esppreview_visiblebutton.Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
+                    esppreview_frame_previewbox.Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame)
+                    --
+                    utility:UpdateOffset(esppreview_visiblebutton, {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner})
+                    utility:UpdateOffset(esppreview_frame_previewbox, {Vector2.new(10,10), esppreview_inner_frame})
+                    utility:UpdateOffset(boxoutline, {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox})
+                    --
+                    window:Move(main_frame.Position + Vector2.new(0, 0))
+                end
+            end
+            --
+            function window.VisualPreview:SetPreviewState(State)
+                window.VisualPreview.Fading = true
+                window.VisualPreview.State = State
+                --
+                task.spawn(function()
+                    for Index, Value in pairs(window.VisualPreview.Drawings) do
+                        utility:Lerp(Index, {Transparency = window.VisualPreview.State and Value or 0}, 0.2)
+                        utility:UpdateTransparency(Index, window.VisualPreview.State and Value or 0)
+                    end
+                end)
+                --
+                window.VisualPreview.Fading = false
+            end
+            --
+            function window.VisualPreview:SetComponentProperty(Component, Property, State, Index)
+                for Index2, Value in pairs(window.VisualPreview.Components[Component]) do
+                    if Index then
+                        Value[Index][Property] = State
+                        --
+                        if Property == "Transparency" then
+                            utility:UpdateTransparency(Value[Index], State)
+                            if window.VisualPreview.Drawings[Value[Index]] then
+                                window.VisualPreview.Drawings[Value[Index]] = State
+                            end
+                        end
+                    else
+                        Value[Property] = State
+                        --
+                        if Property == "Transparency" then
+                            utility:UpdateTransparency(Value, State)
+                            if window.VisualPreview.Drawings[Value] then
+                                window.VisualPreview.Drawings[Value] = State
+                            end
+                        end
+                    end 
+                end
+            end
+            --
+            function window.VisualPreview:SetComponentSelfProperty(Component, Self, Property, State, Index)
+                if Index then
+                    window.VisualPreview.Components[Component][Self][Index][Property] = State
+                    --
+                    if Property == "Transparency" then
+                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self][Index], State)
+                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] then
+                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] = State
+                        end
+                    end
+                else
+                    window.VisualPreview.Components[Component][Self][Property] = State
+                    --
+                    if Property == "Transparency" then
+                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self], State)
+                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] then
+                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] = State
+                        end
+                    end
+                end 
+            end
+            --
+            library.began[#library.began + 1] = function(Input)
+                if Input.UserInputType == Enum.UserInputType.MouseButton1 and esppreview_visiblebutton.Visible and window.isVisible and utility:MouseOverDrawing({esppreview_visiblebutton.Position.X, esppreview_visiblebutton.Position.Y, esppreview_visiblebutton.Position.X + esppreview_visiblebutton.TextBounds.X, esppreview_visiblebutton.Position.Y + esppreview_visiblebutton.TextBounds.Y}) and not window:IsOverContent() then
+                    window.VisualPreview.Visible = false
+                    esppreview_visiblebutton.Text = window.VisualPreview.Visible and "O" or "0"
+                end
+            end
+            --
+            do -- Preview Stuff
+                local preview_boxoutline = utility:Create("Frame", {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox}, {
+                    Size = BoxSize,
+                    Position = utility:Position(1, -(BoxSize.X - 1), 0, 20, esppreview_frame_previewbox),
+                    Color = Color3.fromRGB(0, 0, 0),
+                    Filled = false,
+                    Thickness = 2.5
+                }, window.VisualPreview.Drawings);boxoutline = preview_boxoutline
+                --
+                local preview_box = utility:Create("Frame", {Vector2.new(0, 0), preview_boxoutline}, {
+                    Size = utility:Size(1, 0, 1, 0, preview_boxoutline),
+                    Position = utility:Position(0, 0, 0, 0, preview_boxoutline),
+                    Color = Color3.fromRGB(255, 255, 255),
+                    Filled = false,
+                    Thickness = 0.6
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_heatlhbaroutline = utility:Create("Frame", {Vector2.new(-6, -1), preview_boxoutline}, {
+                    Size = utility:Size(0, 4, 1, 2, preview_boxoutline),
+                    Position = utility:Position(0, -6, 0, -1, preview_boxoutline),
+                    Color = Color3.fromRGB(0, 0, 0),
+                    Filled = true
+                }, window.VisualPreview.Drawings);healthbaroutline = preview_heatlhbaroutline
+                --
+                local preview_heatlhbar = utility:Create("Frame", {Vector2.new(1, 1), preview_heatlhbaroutline}, {
+                    Size = utility:Size(1, -2, 1, -2, preview_heatlhbaroutline),
+                    Position = utility:Position(0, 1, 0, 1, preview_heatlhbaroutline),
+                    Color = Color3.fromRGB(255, 0, 0),
+                    Filled = true
+                }, window.VisualPreview.Drawings);healthbar = preview_heatlhbar
+                --
+                local preview_title = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, -20), preview_box}, {
+                    Text = "Username",
+                    Size = theme.textsize,
+                    Font = theme.font,
+                    Color = theme.textcolor,
+                    OutlineColor = theme.textborder,
+                    Center = true,
+                    Position = utility:Position(0.5, 0, 0, -20, preview_box)
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_distance = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 5), preview_box}, {
+                    Text = "25m",
+                    Size = theme.textsize,
+                    Font = theme.font,
+                    Color = theme.textcolor,
+                    OutlineColor = theme.textborder,
+                    Center = true,
+                    Position = utility:Position(0.5, 0, 1, 5, preview_box)
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_tool = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 20), preview_box}, {
+                    Text = "Weapon",
+                    Size = theme.textsize,
+                    Font = theme.font,
+                    Color = theme.textcolor,
+                    OutlineColor = theme.textborder,
+                    Center = true,
+                    Position = utility:Position(0.5, 0, 1, 20, preview_box)
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_character = utility:Create("Frame", {Vector2.new(46/2, 40/2), preview_box}, {
+                    Size = utility:Size(1, -46, 1, -40, preview_box),
+                    Position = utility:Position(0, (46/2), 0, (40/2), preview_box),
+                    Color = Color3.fromRGB(255, 255, 255),
+                    Transparency = 0
+                }, window.VisualPreview.Drawings)
+                --
+                do -- Chams
+                    for Index = 1, 2 do
+                        local transparency = Index == 1 and 0.75 or 0.5
+                        local color = Index == 1 and Color3.fromRGB(93, 62, 152) or Color3.fromRGB(255, 255, 255)
+                        --
+                        local extrasize = Index == 1 and 4 or 0
+                        local extraoffset = Index == 1 and -2 or 0
+                        --
+                        local preview_character_head = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.35) + (extraoffset), extraoffset), preview_character}, {
+                            Size = utility:Size(0.3, extrasize, 0.2, 0, preview_character),
+                            Position = utility:Position(0.35, extraoffset, 0, extraoffset, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_character_torso = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
+                            Size = utility:Size(0.5, extrasize, 0.4, extrasize, preview_character),
+                            Position = utility:Position(0.25, extraoffset, 0.2, extraoffset, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_character_leftarm = utility:Create("Frame", {Vector2.new(extraoffset, (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
+                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
+                            Position = utility:Position(0, extraoffset, 0.2, extraoffset, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_character_rightarm = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.75) + (extraoffset + extrasize), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
+                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
+                            Position = utility:Position(0.75, extraoffset, 0.2, extraoffset, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_character_leftleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
+                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
+                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_character_rightleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.5) + (extraoffset + (extrasize / 2)), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
+                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
+                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        window.VisualPreview.Components.Chams["Head"][Index] = preview_character_head
+                        window.VisualPreview.Components.Chams["Torso"][Index] = preview_character_torso
+                        window.VisualPreview.Components.Chams["LeftArm"][Index] = preview_character_leftarm
+                        window.VisualPreview.Components.Chams["RightArm"][Index] = preview_character_rightarm
+                        window.VisualPreview.Components.Chams["LeftLeg"][Index] = preview_character_leftleg
+                        window.VisualPreview.Components.Chams["RightLeg"][Index] = preview_character_rightleg
+                    end
+                end
+                --
+                do -- Skeleton
+                    for Index = 1, 2 do
+                        local skeletonsize = Vector2.new(Index == 1 and 3 or 1, Index == 1 and -10 or -12)
+                        local skeletonoffset = Vector2.new(Index == 1 and -1 or 0, Index == 1 and 5 or 6)
+                        local transparency = 0.5
+                        local color = Index == 1 and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
+                        --
+                        local preview_skeleton_head = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Head"][2].Size.X * 0.5) + skeletonoffset.X, (window.VisualPreview.Components.Chams["Head"][2].Size.Y * 0.5) + skeletonoffset.Y), window.VisualPreview.Components.Chams["Head"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 0.5, 0, window.VisualPreview.Components.Chams["Head"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0.5, skeletonoffset.Y, window.VisualPreview.Components.Chams["Head"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_torso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["Torso"][2]}, {
+                            Size = utility:Size(1, skeletonsize.X + window.VisualPreview.Components.Chams["LeftArm"][2].Size.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["Torso"][2]),
+                            Position = utility:Position(0, skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["Torso"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_leftarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftArm"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_rightarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightArm"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_hips = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 1) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
+                            Size = utility:Size(1, skeletonsize.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["LeftLeg"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_leftleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_rightleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightLeg"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        local preview_skeleton_hipstorso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y + (Index == 1 and 3 or 1)), window.VisualPreview.Components.Chams["Torso"][2]}, {
+                            Size = utility:Size(0, skeletonsize.X, 1, Index == 1 and -3 or -1, window.VisualPreview.Components.Chams["Torso"][2]),
+                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y + (Index == 1 and 3 or 1), window.VisualPreview.Components.Chams["Torso"][2]),
+                            Color = color,
+                            Transparency = transparency
+                        }, window.VisualPreview.Drawings)
+                        --
+                        window.VisualPreview.Components.Skeleton["Head"][Index] = preview_skeleton_head
+                        window.VisualPreview.Components.Skeleton["Torso"][Index] = preview_skeleton_torso
+                        window.VisualPreview.Components.Skeleton["LeftArm"][Index] = preview_skeleton_leftarm
+                        window.VisualPreview.Components.Skeleton["RightArm"][Index] = preview_skeleton_rightarm
+                        window.VisualPreview.Components.Skeleton["Hips"][Index] = preview_skeleton_hips
+                        window.VisualPreview.Components.Skeleton["LeftLeg"][Index] = preview_skeleton_leftleg
+                        window.VisualPreview.Components.Skeleton["RightLeg"][Index] = preview_skeleton_rightleg
+                        window.VisualPreview.Components.Skeleton["HipsTorso"][Index] = preview_skeleton_hipstorso
+                    end
+                end
+                --
+                local preview_boxfill = utility:Create("Frame", {Vector2.new(1, 1), preview_boxoutline}, {
+                    Size = utility:Size(1, -2, 1, -2, preview_boxoutline),
+                    Position = utility:Position(0, 1, 0, 1, preview_boxoutline),
+                    Color = Color3.fromRGB(255, 255, 255),
+                    Filled = true,
+                    Transparency = 0.9
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_flags = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X -56, 5), preview_box}, {
+                    Text = "Flags ->", --Display\nMoving\nJumping\nDesynced"
+                    Size = theme.textsize,
+                    Font = theme.font,
+                    Color = Color3.fromRGB(255, 255, 255),
+                    OutlineColor = theme.textborder,
+                    Center = false,
+                    Position = utility:Position(1, -56, 0, 5, preview_box)
+                }, window.VisualPreview.Drawings)
+                --
+                local preview_healthbarvalue = utility:Create("TextLabel", {Vector2.new(0, 5), preview_heatlhbar}, {
+                    Text = "<- Number", --Display\nMoving\nJumping\nDesynced"
+                    Size = theme.textsize,
+                    Font = theme.font,
+                    Color = Color3.fromRGB(0, 255, 0),
+                    OutlineColor = theme.textborder,
+                    Center = false,
+                    Position = utility:Position(0, 0, 0, 5, preview_heatlhbar)
+                }, window.VisualPreview.Drawings);healthvalue = preview_healthbarvalue
+                --
+                window.VisualPreview.Components.Title["Text"] = preview_title
+                window.VisualPreview.Components.Distance["Text"] = preview_distance
+                window.VisualPreview.Components.Tool["Text"] = preview_tool
+                window.VisualPreview.Components.Flags["Text"] = preview_flags
+                window.VisualPreview.Components.Box["Outline"] = preview_boxoutline
+                window.VisualPreview.Components.Box["Box"] = preview_box
+                window.VisualPreview.Components.Box["Fill"] = preview_boxfill
+                window.VisualPreview.Components.HealthBar["Outline"] = preview_heatlhbaroutline
+                window.VisualPreview.Components.HealthBar["Box"] = preview_heatlhbar
+                window.VisualPreview.Components.HealthBar["Value"] = preview_healthbarvalue
+            end
+            --
+            do -- New Drawings
+                local NewDrawings = {}
+                --
+                for Index, Value in pairs(library.drawings) do
+                    if Value[1] and table.find(window.VisualPreview.Drawings, Value[1]) then
+                        NewDrawings[Value[1]] = Value[3]
+                    end
+                end
+                --
+                window.VisualPreview.Drawings = NewDrawings
+            end
         end
         --
         function window:SetName(Name)
@@ -1214,7 +1858,7 @@ do
                 Size = utility:Size(0, text_bounds.X+20, 0, 21),
                 Position = utility:Position(0, 100, 0, 38/2-10),
                 Hidden = true,
-                ZIndex = 3,
+                ZIndex = 60,
                 Color = theme.outline,
                 Visible = window.watermark.visible
             })window.watermark.outline = watermark_outline
@@ -1227,7 +1871,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, watermark_outline),
                 Position = utility:Position(0, 1, 0, 1, watermark_outline),
                 Hidden = true,
-                ZIndex = 3,
+                ZIndex = 60,
                 Color = theme.inline,
                 Visible = window.watermark.visible
             })
@@ -1240,7 +1884,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, watermark_inline),
                 Position = utility:Position(0, 1, 0, 1, watermark_inline),
                 Hidden = true,
-                ZIndex = 3,
+                ZIndex = 60,
                 Color = theme.lightcontrast,
                 Visible = window.watermark.visible
             })
@@ -1253,7 +1897,7 @@ do
                 Size = utility:Size(1, 0, 0, 1, watermark_frame),
                 Position = utility:Position(0, 0, 0, 0, watermark_frame),
                 Hidden = true,
-                ZIndex = 3,
+                ZIndex = 60,
                 Color = theme.accent,
                 Visible = window.watermark.visible
             })
@@ -1269,7 +1913,7 @@ do
                 Color = theme.textcolor,
                 OutlineColor = theme.textborder,
                 Hidden = true,
-                ZIndex = 3,
+                ZIndex = 60,
                 Position = utility:Position(0, 2 + 6, 0, 4, watermark_outline),
                 Visible = window.watermark.visible
             })
@@ -1333,7 +1977,7 @@ do
                 Size = utility:Size(0, 180, 0, 22),
                 Position = utility:Position(0, 10, 0.4, 0),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.outline,
                 Visible = window.keybindslist.visible
             })window.keybindslist.outline = keybindslist_outline
@@ -1346,7 +1990,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, keybindslist_outline),
                 Position = utility:Position(0, 1, 0, 1, keybindslist_outline),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.inline,
                 Visible = window.keybindslist.visible
             })
@@ -1359,7 +2003,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, keybindslist_inline),
                 Position = utility:Position(0, 1, 0, 1, keybindslist_inline),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.lightcontrast,
                 Visible = window.keybindslist.visible
             })
@@ -1372,7 +2016,7 @@ do
                 Size = utility:Size(1, 0, 0, 1, keybindslist_frame),
                 Position = utility:Position(0, 0, 0, 0, keybindslist_frame),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.accent,
                 Visible = window.keybindslist.visible
             })
@@ -1389,7 +2033,7 @@ do
                 OutlineColor = theme.textborder,
                 Center = true,
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Position = utility:Position(0.5, 0, 0, 5, keybindslist_outline),
                 Visible = window.keybindslist.visible
             })
@@ -1416,7 +2060,7 @@ do
                         Size = utility:Size(1, 0, 0, 18, keybindslist_outline),
                         Position = utility:Position(0, 0, 1, -1, keybindslist_outline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.outline,
                         Visible = window.keybindslist.visible
                     })
@@ -1429,7 +2073,7 @@ do
                         Size = utility:Size(1, -2, 1, -2, keybind_outline),
                         Position = utility:Position(0, 1, 0, 1, keybind_outline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.inline,
                         Visible = window.keybindslist.visible
                     })
@@ -1442,7 +2086,7 @@ do
                         Size = utility:Size(1, -2, 1, -2, keybind_inline),
                         Position = utility:Position(0, 1, 0, 1, keybind_inline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.darkcontrast,
                         Visible = window.keybindslist.visible
                     })
@@ -1459,7 +2103,7 @@ do
                         OutlineColor = theme.textborder,
                         Center = false,
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Position = utility:Position(0, 4, 0, 3, keybind_outline),
                         Visible = window.keybindslist.visible
                     })
@@ -1476,7 +2120,7 @@ do
                         Color = theme.textcolor,
                         OutlineColor = theme.textborder,
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Position = utility:Position(1, -4 - utility:GetTextBounds(keybindname, theme.textsize, theme.font).X, 0, 3, keybind_outline),
                         Visible = window.keybindslist.visible
                     })
@@ -1544,6 +2188,7 @@ do
                     window.keybindslist:Visibility()
                 end
             end
+    
             --
             utility:Connection(ws.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),function()
                 keybindslist_outline.Position = utility:Position(0, 10, 0.4, 0)
@@ -1562,10 +2207,10 @@ do
             local info = info or {}
             --
             local statuslist_outline = utility:Create("Frame", {Vector2.new(10,(utility:GetScreenSize().Y/2)-200)}, {
-                Size = utility:Size(0, 150, 0, 22),
-                Position = utility:Position(1, -160, 0.4, 0),
+                Size = utility:Size(0, 210, 0, 22),
+                Position = utility:Position(1, -220, 0.4, 0),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.outline,
                 Visible = window.statuslist.visible
             })window.statuslist.outline = statuslist_outline
@@ -1578,7 +2223,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, statuslist_outline),
                 Position = utility:Position(0, 1, 0, 1, statuslist_outline),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.inline,
                 Visible = window.statuslist.visible
             })
@@ -1591,7 +2236,7 @@ do
                 Size = utility:Size(1, -2, 1, -2, statuslist_inline),
                 Position = utility:Position(0, 1, 0, 1, statuslist_inline),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.lightcontrast,
                 Visible = window.statuslist.visible
             })
@@ -1604,7 +2249,7 @@ do
                 Size = utility:Size(1, 0, 0, 1, statuslist_frame),
                 Position = utility:Position(0, 0, 0, 0, statuslist_frame),
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Color = theme.accent,
                 Visible = window.statuslist.visible
             })
@@ -1621,7 +2266,7 @@ do
                 OutlineColor = theme.textborder,
                 Center = true,
                 Hidden = true,
-                ZIndex = 1,
+                ZIndex = 55,
                 Position = utility:Position(0.5, 0, 0, 5, statuslist_outline),
                 Visible = window.statuslist.visible
             })
@@ -1648,7 +2293,7 @@ do
                         Size = utility:Size(1, 0, 0, 18, statuslist_outline),
                         Position = utility:Position(0, 0, 1, -1, statuslist_outline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.outline,
                         Visible = window.statuslist.visible
                     })
@@ -1661,7 +2306,7 @@ do
                         Size = utility:Size(1, -2, 1, -2, status_outline),
                         Position = utility:Position(0, 1, 0, 1, status_outline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.inline,
                         Visible = window.statuslist.visible
                     })
@@ -1674,7 +2319,7 @@ do
                         Size = utility:Size(1, -2, 1, -2, status_inline),
                         Position = utility:Position(0, 1, 0, 1, status_inline),
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Color = theme.darkcontrast,
                         Visible = window.statuslist.visible
                     })
@@ -1691,7 +2336,7 @@ do
                         OutlineColor = theme.textborder,
                         Center = false,
                         Hidden = true,
-                        ZIndex = 1,
+                        ZIndex = 55,
                         Position = utility:Position(0, 4, 0, 3, status_outline),
                         Visible = window.statuslist.visible
                     })
@@ -1723,6 +2368,10 @@ do
                         status_inline.Visible = window.statuslist.visible
                         status_frame.Visible = window.statuslist.visible
                         status_title.Visible = window.statuslist.visible
+                    end
+                    --
+                    function statusTable:Update(text)
+                        status_title.Text = text 
                     end
                     --
                     window.statuslist.statuses[statusname] = statusTable
@@ -1766,8 +2415,20 @@ do
                 --
                 window.statuslist:Resort()
             end)
+            --[[
+            utility:Connection(rs.Heartbeat, function()
+                if game.Players.LocalPlayer and game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") ~= nil then 
+                    for i,v in next, window.statuslist.statuses do
+                        if string.match(i, "Velocity") then
+                            v:Update("Velocity | "..tostring(math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Velocity.X)..", "..math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Velocity.Y)..", "..math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Velocity.Z)) or "0, 0, 0")
+                        else
+                            v:Update("Position | "..tostring(math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.X)..", "..math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Y)..", "..math.round(game.Players.LocalPlayer.Character.HumanoidRootPart.Position.Z)) or "0, 0, 0")
+                        end
+                    end
+                end
+            end)
+            --]]
         end
-        --
         function window:Cursor(info)
             window.cursor = {}
             --
@@ -1775,7 +2436,7 @@ do
                 Color = theme.cursoroutline,
                 Thickness = 2.5,
                 Filled = false,
-                ZIndex = 2,
+                ZIndex = 65,
                 Hidden = true
             });window.cursor["cursor"] = cursor
             --
@@ -1787,7 +2448,7 @@ do
                 Color = theme.accent,
                 Filled = true,
                 Thickness = 0,
-                ZIndex = 2,
+                ZIndex = 65,
                 Hidden = true
             });window.cursor["cursor_inline"] = cursor_inline
             --
@@ -1805,6 +2466,8 @@ do
                 cursor_inline.PointA = Vector2.new(mouseLocation.X, mouseLocation.Y)
                 cursor_inline.PointB = Vector2.new(mouseLocation.X + 12, mouseLocation.Y + 4)
                 cursor_inline.PointC = Vector2.new(mouseLocation.X + 4, mouseLocation.Y + 12)
+
+                
             end)
             --
             uis.MouseIconEnabled = false
@@ -1841,6 +2504,8 @@ do
             window:Watermark()
             window:KeybindsList()
             window:StatusList()
+            window.statuslist:Add("Velocity - 0,0,0")
+            window.statuslist:Add("Position - 0,0,0")
             window:Cursor()
             --
             window.init = true
@@ -1857,6 +2522,10 @@ do
             end
             --
             if window.currentContent.textbox then
+                if uis:IsKeyDown(Enum.KeyCode["LeftControl"]) and uis:IsKeyDown(Enum.KeyCode.V) then
+                    window.currentContent.textbox.Fire((utility:GetClipboard())) 
+                    return
+                end
                 if Find(utility.Keyboard.Letters, utility:InputToString(Input.KeyCode)) then
                     if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
                         window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):upper())
@@ -1925,11 +2594,11 @@ do
             end]]
         end
         --
-        utility:Connection(uis.InputBegan,function(Input)
+        utility:Connection(uis.InputBegan,function(Input, Typing)
             for _, func in pairs(library.began) do
                 if not window.dragging then
                     local e,s = pcall(function()
-                        func(Input)
+                        func(Input, Typing)
                     end)
                 else
                     break
@@ -1980,7 +2649,7 @@ do
         --
         local window = self
         --
-        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, window = window}
+        local page = {name = name, open = false, sections = {}, sectionOffset = {left = 0, right = 0}, window = window}
         --
         local position = 4
         --
@@ -1991,7 +2660,7 @@ do
         local textbounds = utility:GetTextBounds(name, theme.textsize, theme.font)
         --
         local page_button = utility:Create("Frame", {Vector2.new(position,4), window.back_frame}, {
-            Size = utility:Size(0, --[[window.pageammount and (((window.back_frame.Size.X - 8 - ((window.pageammount - 1) * 2)) / window.pageammount))or ]](textbounds.X+20), 0, 21),
+            Size = utility:Size(0, window.pageammount and (((window.back_frame.Size.X - 8 - ((window.pageammount - 1) * 2)) / window.pageammount)) or (textbounds.X+20), 0, 21),
             Position = utility:Position(0, position, 0, 4, window.back_frame),
             Color = theme.outline
         });page["page_button"] = page_button
@@ -2074,6 +2743,8 @@ do
                 window.currentPage.page_button_title.Color = theme.textdark
                 window.currentPage.open = false
                 --
+                
+                --
                 library.colors[window.currentPage.page_button_color] = {
                     Color = "darkcontrast"
                 }
@@ -2119,6 +2790,11 @@ do
         --
         library.began[#library.began + 1] = function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and utility:MouseOverDrawing({page_button.Position.X,page_button.Position.Y,page_button.Position.X + page_button.Size.X,page_button.Position.Y + page_button.Size.Y}) and window.currentPage ~= page then
+                if page.name == "Players" then
+                    window.VisualPreview:SetPreviewState(true)
+                else
+                    window.VisualPreview:SetPreviewState(false)
+                end
                 page:Show()
             end
         end
@@ -2138,7 +2814,7 @@ do
         local section = {window = window, page = page, visibleContent = {}, currentAxis = 20, side = side}
         --
         local section_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size or 22, window.tab_frame),
+            Size = utility:Size(window.loader and 1 or info.Wide and 1 or 0.5, window.loader and -10 or info.Wide and -10 or -7, 0, size or 22, window.tab_frame),
             Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
             Color = theme.inline,
             Visible = page.open
@@ -2197,9 +2873,13 @@ do
         }
         --
         function section:Update(Padding)
-            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+4)), window.tab_frame)
+            section_inline.Size = utility:Size(window.loader and 1 or info.Wide and 1 or 0.5, window.loader and -10 or info.Wide and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+4)), window.tab_frame)
             section_outline.Size = utility:Size(1, -2, 1, -2, section_inline)
             section_frame.Size = utility:Size(1, -2, 1, -2, section_outline)
+        end
+        --
+        function section:UpdateTitle(text)
+            section_title.Text = text
         end
         --
         page.sectionOffset[side] = page.sectionOffset[side] + 100 + 5
@@ -2653,22 +3333,26 @@ do
                 utility:UpdateTransparency(listitem_firstline, enabled and 0.3 or 0)
                 utility:UpdateTransparency(listitem_secondline, enabled and 0.3 or 0)
                 --
-                if enabled then
+                if selected ~= nil then
+                    listitem_team.Text = selected[3]
+                    listitem_team.Color =  selected[3] == "None" and theme.textcolor or selected[3] == "Antilocking" and theme.accent or theme.textcolor
+                    
                     listitem_username.Text = selected[2]
-                    listitem_team.Text = selected[1].Team and tostring(selected[1].Team) or "None"
-                    listitem_status.Text = selected[3]
+                    listitem_username.Color = selected[5] and theme.accent or theme.textcolor
+                    listitem_status.Text = selected[4]
                     --
-                    listitem_username.Color = selected[4] and theme.accent or theme.textcolor
-                    listitem_status.Color = selected[3] == "Local Player" and Color3.fromRGB(200, 55, 200) or selected[3] == "Priority" and Color3.fromRGB(55, 55, 200) or selected[3] == "Friend" and Color3.fromRGB(55, 200, 55) or selected[3] == "Enemy" and Color3.fromRGB(200, 55, 55) or theme.textcolor
-                    --
+                    listitem_status.Color = selected[4] == "Local Player" and Color3.fromRGB(200, 55, 200) or selected[4] == "Priority" and Color3.fromRGB(55, 55, 200) or selected[4] == "Friend" and Color3.fromRGB(55, 200, 55) or selected[4] == "Enemy" and Color3.fromRGB(200, 55, 55) or selected[4] == "Resolve" and Color3.fromRGB(252, 186, 3) or theme.textcolor
+                end
+                if enabled then
+                    
                     library.colors[listitem_username] = {
                         OutlineColor = "textborder",
-                        Color = selected[4] and "accent" or "textcolor"
+                        Color = selected[5] and "accent" or "textcolor"
                     }
                     -- 
                     library.colors[listitem_status] = {
                         OutlineColor = "textborder",
-                        Color = selected[3] == "None" and "textcolor" or nil
+                        Color = selected[4] == "None" and "textcolor" or nil
                     }
                 else
                     listitem_username.Text = ""
@@ -2755,7 +3439,7 @@ do
             local button = {
                 open = false,
                 current = "None",
-                options = {"None", "Friend", "Enemy", "Priority"},
+                options = {"None", "Friend", "Enemy", "Priority", "Resolve"},
                 holder = {buttons = {}, drawings = {}},
                 selection = nil
             }
@@ -2846,8 +3530,8 @@ do
                 end
                 --
                 if Selection then
-                    button_title.Text = Selection[3]
-                    button.current = Selection[3]
+                    button_title.Text = Selection[4]
+                    button.current = Selection[4]
                     button.selection = Selection
                 else
                     button.selection = nil
@@ -2965,7 +3649,7 @@ do
                                     button_title.Text = button.current
         
                                     if button.selection then
-                                        button.selection[3] = value
+                                        button.selection[4] = value
                                         playerList:Refresh(button.selection)
                                     end
         
@@ -3004,7 +3688,7 @@ do
         --
         function playerList:GetSelection()
             for Index, Value in pairs(playerList.players) do
-                if Value[4] then
+                if Value[5] then
                     return Value
                 end
             end
@@ -3042,8 +3726,10 @@ do
             end
             --
             if Relation then
-                library.Relations[Relation[1].UserId] = Relation[3] ~= "None" and Relation[3] or nil
+                library.Relations[Relation[1].UserId] = Relation[4] ~= "None" and Relation[4] or nil
             end
+            --
+            
             --
             playerList_title.Text = ("Player List - %s Players"):format(#playerList.items - 1)
             --
@@ -3051,23 +3737,38 @@ do
             --
             playerList.buttons[1]:Update(Selection)
             --
+            
+            --
             window:Move(window.main_frame.Position)
             --
             if Selection then
                 if lastselection ~= Selection then
                     lastselection = Selection
                     --
+                    playerlistIndividualTweak:UpdateTitle(Selection[1].Name.." ["..Selection[1].DisplayName.."]'s - Tweaks")
+                    --
+                    if isAimviewerTarget(Selection[1]) == true then
+                        pListMistToggle:Set(true)
+                    else
+                        pListMistToggle:Set(false)
+                    end
+                    --
                     options_avatar.Data = ""
                     options_loadingtext.Text = "..?"
                     --
                     options_title.Text = ("User ID : %s\nDisplay Name : %s\nName : %s\nHealth : %s/%s"):format(Selection[1].UserId, Selection[1].DisplayName ~= "" and Selection[1].DisplayName or Selection[1].Name, Selection[1].Name, "100", "100")
                     --
-                    local imagedata = game:HttpGet(("https://www.roblox.com/headshot-thumbnail/image?userId=%s&width=100&height=100&format=png"):format(Selection[1].UserId))
-                    --
-                    if playerList:GetSelection() == Selection then
-                        options_avatar.Data = imagedata
-                        options_loadingtext.Text = ""
-                    end
+                    task.spawn(function()
+                        
+                        local pImageData = game:GetService("HttpService"):JSONDecode(game:HttpGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%s&size=352x352&format=Png&isCircular=false"):format(Selection[1].UserId)))
+
+                        local imagedata = game:HttpGet((pImageData["data"][1]["imageUrl"]))
+                        --
+                        if playerList:GetSelection() == Selection then
+                            options_avatar.Data = imagedata
+                            options_loadingtext.Text = ""
+                        end
+                    end)
                 end
             else
                 options_title.Text = "No player selected."
@@ -3080,7 +3781,7 @@ do
         function playerList:Update() end
         --
         utility:Connection(plrs.PlayerAdded, function(Player)
-            playerList.players[#playerList.players + 1] = {Player, Player.Name, "None", false}
+            playerList.players[#playerList.players + 1] = {Player, Player.Name,"None", "None",false}
             --
             playerList:UpdateScroll()
         end)
@@ -3096,7 +3797,7 @@ do
         end)
         --
         for Index, Value in pairs(plrs:GetPlayers()) do
-            playerList.players[#playerList.players + 1] = {Value, Value.Name, Value == localplayer and "Local Player" or "None", false}
+            playerList.players[#playerList.players + 1] = {Value, Value.Name, "None",  Value == localplayer and "Local Player" or "None", false}
         end
         --
         library.began[#library.began + 1] = function(Input)
@@ -3108,16 +3809,16 @@ do
                         local Found = playerList.players[Index + playerList.scrollingindex]
                         --
                         if Found and utility:MouseOverDrawing({list_frame.Position.X, list_frame.Position.Y + 2 + (22 * (Index - 1)), list_frame.Position.X + list_frame.Size.X, list_frame.Position.Y + 2 + (22 * (Index - 1)) + 22}) then
-                            if Found[4] then
-                                Found[4] = false
+                            if Found[5] then
+                                Found[5] = false
                             else
                                 for Index2, Value2 in pairs(playerList.players) do
                                     if Value2 ~= Found then
-                                        Value2[4] = false
+                                        Value2[5] = false
                                     end
                                 end
                                 --
-                                Found[4] = true
+                                Found[5] = true
                             end
                             --
                             playerList:UpdateScroll()
@@ -3948,7 +4649,9 @@ do
             --
             keybind:Change(def)
             --
-            library.began[#library.began + 1] = function(Input)
+            library.began[#library.began + 1] = function(Input, Typing)
+                
+                if Typing then return end
                 if keybind.current[1] and keybind.current[2] then
                     if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
                         if keybind.mode == "On Hold" then
@@ -5132,7 +5835,7 @@ do
         }, section.visibleContent);multibox["multibox_image"] = multibox_image
         --
         utility:LoadImage(multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-        utility:LoadImage(multibox__gradient, "gradient", "https://i.imgur.com/DzrzUt3.png")
+        utility:LoadImage(multibox__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
         --
         function multibox:Update()
             if multibox.open and multibox.holder.inline then
@@ -5259,7 +5962,7 @@ do
                                 Visible = page.open
                             }, multibox.holder.drawings)
                             --
-                            utility:LoadImage(multibox_value_gradient, "gradient", "https://i.imgur.com/DzrzUt3.png")]]
+                            utility:LoadImage(multibox_value_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")]]
                             --
                             local multibox_value = utility:Create("TextLabel", {Vector2.new(Find(multibox.current, v) and 8 or 6,2), multibox_value_frame}, {
                                 Text = v,
@@ -5509,7 +6212,9 @@ do
         --
         keybind:Change(def)
         --
-        library.began[#library.began + 1] = function(Input)
+        library.began[#library.began + 1] = function(Input, Typing)
+            
+            if Typing then return end
             if keybind.current[1] and keybind.current[2] then
                 if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
                     if keybind.mode == "On Hold" then
@@ -5667,7 +6372,9 @@ do
             end
         end
         --
-        library.ended[#library.ended + 1] = function(Input)
+        library.ended[#library.ended + 1] = function(Input, Typing)
+            
+            if Typing then return end
             if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                 if keybind.current[1] and keybind.current[2] then
                     if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
@@ -5846,6 +6553,10 @@ do
         --
         function colorpicker:Get()
             return Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
+        end
+        --
+        function colorpicker:GetTransparency()
+            return colorpicker.current[4]
         end
         --
         library.began[#library.began + 1] = function(Input)
@@ -6290,6 +7001,10 @@ do
             --
             function colorpicker:Get()
                 return Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
+            end
+            --
+            function colorpicker:GetTransparency()
+                return colorpicker.current[4]
             end
             --
             library.began[#library.began + 1] = function(Input)
@@ -6796,507 +7511,548 @@ do
 end
 --
 
-        -- // Esp Preview
-        do
-            window.VisualPreview = {
-                Size = {X = 5, Y = 0},
-                Color1 = Color3.fromRGB(0, 255, 0),
-                Color2 = Color3.fromRGB(255, 0, 0),
-                HealthBarFade = 0,
-                Fading = false,
-                State = false,
-                Visible = true,
-                Drawings = {},
-                Components = {
-                    Box = {
-                        Outline = nil,
-                        Box = nil,
-                        Fill = nil
-                    },
-                    HealthBar = {
-                        Outline = nil,
-                        Box = nil,
-                        Value = nil
-                    },
-                    Skeleton = {
-                        Head = {},
-                        Torso = {},
-                        LeftArm = {},
-                        RightArm = {},
-                        Hips = {},
-                        LeftLeg = {},
-                        RightLeg = {},
-                        HipsTorso = {}
-                    },
-                    Chams = {
-                        Head = {},
-                        Torso = {},
-                        LeftArm = {},
-                        RightArm = {},
-                        LeftLeg = {},
-                        RightLeg = {}
-                    },
-                    Title = {
-                        Text = nil
-                    },
-                    Distance = {
-                        Text = nil
-                    },
-                    Tool = {
-                        Text = nil
-                    },
-                    Flags = {
-                        Text = nil
-                    }
-                }
-            }
+local Tyrisware = {
+    Locals = {
+        LastPreviewUpdate = 5
+    },
+    Account = {
+        Username = game.Players.LocalPlayer.Name,
+        UserID = game.Players.LocalPlayer.UserId
+    },
+    Configs = {},
+    Weapons = { 
+        "Glock",
+        "SMG",
+        "Silencer",
+        "TacticalShotgun",
+        "P90",
+        "AUG",
+        "Shotgun",
+        "RPG",
+        "AR",
+        "Double-Barrel SG",
+        "Flamethrower",
+        "Revolver",
+        "LMG",
+        "AK47",
+        "DrumGun",
+        "Silencer",
+        "GrenadeLauncher",
+        "Taser",
+        "SilencerAR"
+    }
+}
+-- hello matas
+function utility:UpdatePreview(Pass)
+    if (Tyrisware.Locals.Window and Tyrisware.Locals.Window.isVisible and Tyrisware.Locals.SelectedPage == "Players") or Pass then
+        if Tyrisware.Locals.SelectedPage and Tyrisware.Locals.SelectedPlayersSection then
+            local Size = {0, 0}
+            local Selection = ("Players" .. Tyrisware.Locals.SelectedPlayersSection .. "_")
             --
-            local esppreview_frame = utility:Create("Frame", {Vector2.new(main_frame.Size.X + 5,0), main_frame}, {
-                Size = utility:Size(0, 236, 0, 339),
-                Position = utility:Position(1, 5, 0, 0, main_frame),
-                Color = theme.outline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_frame] = {
-                Color = "outline"
-            }
-            --
-            local esppreview_inline = utility:Create("Frame", {Vector2.new(1,1), esppreview_frame}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_frame),
-                Position = utility:Position(0, 1, 0, 1, esppreview_frame),
-                Color = theme.accent
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inline] = {
-                Color = "accent"
-            }
-            --
-            local esppreview_inner = utility:Create("Frame", {Vector2.new(1,1), esppreview_inline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inline),
-                Color = theme.lightcontrast
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner] = {
-                Color = "lightcontrast"
-            }
-            --
-            local esppreview_title = utility:Create("TextLabel", {Vector2.new(4,2), esppreview_inner}, {
-                Text = "ESP Preview",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, 2, esppreview_inner)
-            }, window.VisualPreview.Drawings)
-            --
-            local esppreview_visiblebutton = utility:Create("TextLabel", {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner}, {
-                Text = "O",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local esppreview_inner_inline = utility:Create("Frame", {Vector2.new(4,18), esppreview_inner}, {
-                Size = utility:Size(1, -8, 1, -22, esppreview_inner),
-                Position = utility:Position(0, 4, 0, 18, esppreview_inner),
-                Color = theme.inline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_inline] = {
-                Color = "inline"
-            }
-            --
-            local esppreview_inner_outline = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_inline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inner_inline),
-                Color = theme.outline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_outline] = {
-                Color = "outline"
-            }
-            --
-            local esppreview_inner_frame = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_outline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inner_outline),
-                Color = theme.darkcontrast
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_frame] = {
-                Color = "darkcontrast"
-            }
-            --
-            local esppreview_frame_previewbox = utility:Create("Frame", {Vector2.new(10,10), esppreview_inner_frame}, {
-                Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame),
-                Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame),
-                Color = Color3.fromRGB(0, 0, 0),
-                Transparency = 0
-            })
-            --
-            local BoxSize = utility:Size(1, -7, 1, -55, esppreview_frame_previewbox)
-            local healthbaroutline
-            local healthbar
-            local healthvalue
-            local boxoutline
-            --
-            function window.VisualPreview:UpdateHealthBar()
-                window.VisualPreview.HealthBarFade = window.VisualPreview.HealthBarFade + 0.015
-                local Smoothened = (math.acos(math.cos(window.VisualPreview.HealthBarFade * math.pi)) / math.pi)
-                local Size = (healthbaroutline.Size.Y - 2) * Smoothened
-                local Color = ColorLerp(Smoothened, window.VisualPreview.Color1, window.VisualPreview.Color2)
+            if Flags[Selection .. "Chams"]:Get() then
+                local ChamsFill, ChamsFillTransparency = Flags[Selection .. "ChamsFill"]:Get().Color, Flags[Selection .. "ChamsFill"]:Get().Transparency
+                local ChamsOutline, ChamsOutlineTransparency = Flags[Selection .. "ChamsOutline"]:Get().Color, Flags[Selection .. "ChamsOutline"]:Get().Transparency
                 --
-                healthvalue.Text = "<- " .. math.round(Smoothened * 100)
-                healthvalue.Color = Color
-                healthbar.Color = Color
-                healthbar.Size = utility:Size(1, -2, 0, Size, healthbaroutline)
-                healthbar.Position = utility:Position(0, 1, 1, -Size - 1, healthbaroutline)
-                utility:UpdateOffset(healthbar, {Vector2.new(1, healthbaroutline.Size.Y - Size - 1), healthbaroutline})
+                local ChamsAuto = Tyrisware.Locals.SelectedPlayersSection ~= "Local" and Flags[Selection .. "ChamsAuto"]:Get()
+                local ChamsVisible, ChamsVisibleTransparency = ChamsAuto and Flags[Selection .. "ChamsVisible"]:Get().Color, ChamsAuto and Flags[Selection .. "ChamsVisible"]:Get().Transparency
+                local ChamsHidden, ChamsHiddenTransparency = ChamsAuto and Flags[Selection .. "ChamsHidden"]:Get().Color, ChamsAuto and Flags[Selection .. "ChamsHidden"]:Get().Transparency
+                --
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Color", ChamsOutline, 1)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Transparency", 1 - ChamsOutlineTransparency, 1)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Color", ChamsAuto and ((Tyrisware.Locals.Window.VisualPreview.Visible) and ChamsVisible or ChamsHidden) or ChamsFill, 2)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Transparency", 1 - (ChamsAuto and ((Tyrisware.Locals.Window.VisualPreview.Visible) and ChamsVisibleTransparency or ChamsHiddenTransparency) or ChamsFillTransparency), 2)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Transparency", 0, 1)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Chams", "Transparency", 0, 2)
             end
             --
-            function window.VisualPreview:UpdateHealthValue(Size)
-                local New = Vector2.new(healthbar.Position.X + (5 - Size), math.clamp(healthbar.Position.Y + 5, 0, (healthbar.Position.Y) + (healthbar.Size.Y) - 18))
+            if Flags[Selection .. "Box"]:Get() then
+                local BoxColor, BoxTransparency = Flags[Selection .. "BoxColor"]:Get().Color, Flags[Selection .. "BoxColor"]:Get().Transparency
+                local BoxFillColor, BoxFillTransparency = Flags[Selection .. "BoxFill"]:Get().Color, Flags[Selection .. "BoxFill"]:Get().Transparency
                 --
-                healthvalue.Position = New
-                utility:UpdateOffset(healthvalue, {Vector2.new(5 - Size, New.Y - healthbar.Position.Y), healthbar})
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Box", "Box", "Color", BoxColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Box", "Box", "Transparency", 1 - BoxTransparency)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Box", "Outline", "Transparency", 1 - BoxTransparency)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Box", "Fill", "Color", BoxFillColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Box", "Fill", "Transparency", 1 - BoxFillTransparency)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Box", "Transparency", 0)
             end
             --
-            function window.VisualPreview:ValidateSize(Side, Size)
-                if not (window.VisualPreview.Size[Side] == Size) then
-                    window.VisualPreview.Size[Side] = Size
-                    --
-                    esppreview_frame.Size = utility:Size(0, 231 + window.VisualPreview.Size[Side], 0, 339)
-                    esppreview_inline.Size = utility:Size(1, -2, 1, -2, esppreview_frame)
-                    esppreview_inner.Size = utility:Size(1, -2, 1, -2, esppreview_inline)
-                    esppreview_inner_inline.Size = utility:Size(1, -8, 1, -22, esppreview_inner)
-                    esppreview_inner_outline.Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline)
-                    esppreview_inner_frame.Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline)
-                    esppreview_frame_previewbox.Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame)
-                    --
-                    esppreview_visiblebutton.Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
-                    esppreview_frame_previewbox.Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame)
-                    --
-                    utility:UpdateOffset(esppreview_visiblebutton, {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner})
-                    utility:UpdateOffset(esppreview_frame_previewbox, {Vector2.new(10,10), esppreview_inner_frame})
-                    utility:UpdateOffset(boxoutline, {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox})
-                    --
-                    window:Move(main_frame.Position + Vector2.new(0, 0))
+            local HealthBarColor, HealthBarColor2, HealthBarTransparency = Flags[Selection .. "HealthBarColor1"]:Get().Color, Flags[Selection .. "HealthBarColor2"]:Get().Color, Flags[Selection .. "HealthBarColor1"]:Get().Transparency
+            --
+            if Flags[Selection .. "HealthBar"]:Get() then
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("HealthBar", "Box", "Transparency", 1 - HealthBarTransparency)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("HealthBar", "Outline", "Transparency", 1 - HealthBarTransparency)
+                --
+                Size[1] = 5
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("HealthBar", "Transparency", 0)
+            end
+            --
+            if Flags[Selection .. "HealthNum"]:Get() or Flags[Selection .. "HealthBar"]:Get() then
+                Tyrisware.Locals.Window.VisualPreview.Color1 = HealthBarColor
+                Tyrisware.Locals.Window.VisualPreview.Color2 = HealthBarColor2
+                --
+                Tyrisware.Locals.Window.VisualPreview:UpdateHealthBar()
+            end
+            --
+            if Flags[Selection .. "HealthNum"]:Get() then
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("HealthBar", "Value", "Transparency", 1 - HealthBarTransparency or 0)
+                --
+                Tyrisware.Locals.Window.VisualPreview:UpdateHealthValue(Size[1])
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("HealthBar", "Value", "Transparency", 0)
+            end
+            --
+            if Flags[Selection .. "Name"]:Get() then
+                local NameColor, NameTransparency = Flags[Selection .. "NameColor"]:Get().Color, Flags[Selection .. "NameColor"]:Get().Transparency
+                --
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Title", "Text", "Color", NameColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Title", "Text", "Transparency", 1 - NameTransparency)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Title", "Transparency", 0)
+            end
+            --
+            if Flags[Selection .. "Distance"]:Get() then
+                local DistanceColor, DistanceTransparency = Flags[Selection .. "DistanceColor"]:Get().Color, Flags[Selection .. "DistanceColor"]:Get().Transparency
+                --
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Distance", "Text", "Color", DistanceColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Distance", "Text", "Transparency", 1 - DistanceTransparency)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Distance", "Transparency", 0)
+            end
+            --
+            if Flags[Selection .. "Tool"]:Get() then
+                local ToolColor, ToolTransparency = Flags[Selection .. "ToolColor"]:Get().Color, Flags[Selection .. "ToolColor"]:Get().Transparency
+                --
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Tool", "Text", "Color", ToolColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Tool", "Text", "Transparency", 1 - ToolTransparency)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Tool", "Transparency", 0)
+            end
+            --
+            if Flags[Selection .. "Flags"]:Get() then
+                local FlagsColor, FlagsTransparency = Flags[Selection .. "FlagsColor"]:Get().Color, Flags[Selection .. "FlagsColor"]:Get().Transparency
+                --
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Flags", "Text", "Color", FlagsColor)
+                Tyrisware.Locals.Window.VisualPreview:SetComponentSelfProperty("Flags", "Text", "Transparency", 1 - FlagsTransparency)
+            else
+                Tyrisware.Locals.Window.VisualPreview:SetComponentProperty("Flags", "Transparency", 0)
+            end
+            --
+            Tyrisware.Locals.Window.VisualPreview:ValidateSize("X", Size[1])
+        end
+    end
+end
+--
+utility:Connection(rs.Heartbeat, function()
+    local Tick = tick()
+    --
+    if (Tick - Tyrisware.Locals.LastPreviewUpdate) > 0.05 then
+        utility:ThreadFunction(utility.UpdatePreview)
+        Tyrisware.Locals.LastPreviewUpdate = Tick
+    end
+end)
+--
+
+-- init configs
+if isfolder("Tyrisware/Configs") then
+    for i,v in pairs(listfiles("Tyrisware/Configs")) do
+        table.insert(Tyrisware.Configs, v:split("\\")[2]:split(".")[1])
+    end
+else
+    makefolder("Tyrisware/Configs")
+end
+local HttpService = game:GetService("HttpService")
+local Library, utility, Flags, Theme = library, utility, library.pointers, theme
+local Languages, Themes = {}, {
+Default = {1, [[{"Outline":"000000","Accent":"5d3e98","LightText":"ffffff","DarkText":"afafaf","LightContrast":"1e1e1e","CursorOutline":"0a0a0a","DarkContrast":"141414","TextBorder":"000000","Inline":"323232"}]]},
+Abyss = {2, [[{"Outline":"0a0a0a","Accent":"8c87b4","LightText":"ffffff","DarkText":"afafaf","LightContrast":"1e1e1e","CursorOutline":"141414","DarkContrast":"141414","TextBorder":"0a0a0a","Inline":"2d2d2d"}]]},
+Fatality = {3, [[{"Outline":"0f0f28","Accent":"f00f50","LightText":"c8c8ff","DarkText":"afafaf","LightContrast":"231946","CursorOutline":"0f0f28","DarkContrast":"191432","TextBorder":"0a0a0a","Inline":"322850"}]]},
+Neverlose = {4, [[{"Outline":"000005","Accent":"00b4f0","LightText":"ffffff","DarkText":"afafaf","LightContrast":"000f1e","CursorOutline":"0f0f28","DarkContrast":"050514","TextBorder":"0a0a0a","Inline":"0a1e28"}]]},
+Aimware = {5, [[{"Outline":"000005","Accent":"c82828","LightText":"e8e8e8","DarkText":"afafaf","LightContrast":"2b2b2b","CursorOutline":"191919","DarkContrast":"191919","TextBorder":"0a0a0a","Inline":"373737"}]]},
+Youtube = {6, [[{"Outline":"000000","Accent":"ff0000","LightText":"f1f1f1","DarkText":"aaaaaa","LightContrast":"232323","CursorOutline":"121212","DarkContrast":"0f0f0f","TextBorder":"121212","Inline":"393939"}]]},
+Gamesense = {7, [[{"Outline":"000000","Accent":"a7d94d","LightText":"ffffff","DarkText":"afafaf","LightContrast":"171717","CursorOutline":"141414","DarkContrast":"0c0c0c","TextBorder":"141414","Inline":"282828"}]]},
+Onetap = {8, [[{"Outline":"000000","Accent":"dda85d","LightText":"d6d9e0","DarkText":"afafaf","LightContrast":"2c3037","CursorOutline":"000000","DarkContrast":"1f2125","TextBorder":"000000","Inline":"4e5158"}]]},
+Entropy = {9, [[{"Outline":"0a0a0a","Accent":"81bbe9","LightText":"dcdcdc","DarkText":"afafaf","LightContrast":"3d3a43","CursorOutline":"000000","DarkContrast":"302f37","TextBorder":"000000","Inline":"4c4a52"}]]},
+Interwebz = {10, [[{"Outline":"1a1a1a","Accent":"c9654b","LightText":"fcfcfc","DarkText":"a8a8a8","LightContrast":"291f38","CursorOutline":"1a1a1a","DarkContrast":"1f162b","TextBorder":"000000","Inline":"40364f"}]]},
+Dracula = {11, [[{"Outline":"202126","Accent":"9a81b3","LightText":"b4b4b8","DarkText":"88888b","LightContrast":"2a2c38","CursorOutline":"202126","DarkContrast":"252730","TextBorder":"2a2c38","Inline":"3c384d"}]]},
+Spotify = {12, [[{"Outline":"0a0a0a","Accent":"1ed760","LightText":"d0d0d0","DarkText":"949494","LightContrast":"181818","CursorOutline":"000000","DarkContrast":"121212","TextBorder":"000000","Inline":"292929"}]]},
+Sublime = {13, [[{"Outline":"000000","Accent":"ff9800","LightText":"e8ffff","DarkText":"d3d3c2","LightContrast":"32332d","CursorOutline":"000000","DarkContrast":"282923","TextBorder":"000000","Inline":"484944"}]]},
+Vape = {14, [[{"Outline":"0a0a0a","Accent":"26866a","LightText":"dcdcdc","DarkText":"afafaf","LightContrast":"1f1f1f","CursorOutline":"000000","DarkContrast":"1a1a1a","TextBorder":"000000","Inline":"363636"}]]},
+Neko = {15, [[{"Outline":"000000","Accent":"d21f6a","LightText":"ffffff","DarkText":"afafaf","LightContrast":"171717","CursorOutline":"0a0a0a","DarkContrast":"131313","TextBorder":"000000","Inline":"2d2d2d"}]]},
+Corn = {16, [[{"Outline":"000000","Accent":"ff9000","LightText":"dcdcdc","DarkText":"afafaf","LightContrast":"252525","CursorOutline":"000000","DarkContrast":"191919","TextBorder":"000000","Inline":"333333"}]]},
+Minecraft = {17, [[{"Outline":"000000","Accent":"27ce40","LightText":"ffffff","DarkText":"d7d7d7","LightContrast":"333333","CursorOutline":"000000","DarkContrast":"262626","TextBorder":"000000","Inline":"333333"}]]}}
+--
+Tyrisware.Locals.ShiftTick = tick()
+Tyrisware.Locals.Shift = 0
+--
+function Tyrisware:CheckTeam(Player1, Player2)
+    if Library.Relations[Player2.UserId] == "Friend" then
+        return false
+    elseif Library.Relations[Player2.UserId] == "Enemy" or Library.Relations[Player2.UserId] == "Priority" then
+        return true
+    end
+    --
+    return (Player1.TeamColor ~= Player2.TeamColor)
+end
+--
+function Tyrisware:GetHealth(Player, Character, Humanoid)
+    if Humanoid then
+        return Clamp(Humanoid.Health, 0, Humanoid.MaxHealth), Humanoid.MaxHealth
+    end
+end
+function Tyrisware:GetBodyParts(Character, RootPart, Indexes, Hitboxes)
+    local Parts = {}
+    local Hitboxes = Hitboxes or {"Head", "Torso", "Arms", "Legs"}
+    --
+    for Index, Part in pairs(Character:GetChildren()) do
+        if Part:IsA("BasePart") and Part ~= RootPart then
+            if Find(Hitboxes, "Head") and Part.Name:lower():find("head") then
+                Parts[Indexes and Part.Name or #Parts + 1] = Part
+            elseif Find(Hitboxes, "Torso") and Part.Name:lower():find("torso") then
+                Parts[Indexes and Part.Name or #Parts + 1] = Part
+            elseif Find(Hitboxes, "Arms") and Part.Name:lower():find("arm") then
+                Parts[Indexes and Part.Name or #Parts + 1] = Part
+            elseif Find(Hitboxes, "Legs") and Part.Name:lower():find("leg") then
+                Parts[Indexes and Part.Name or #Parts + 1] = Part
+            elseif (Find(Hitboxes, "Arms") and Part.Name:lower():find("hand")) or (Find(Hitboxes, "Legs ") and Part.Name:lower():find("foot")) then
+                Parts[Indexes and Part.Name or #Parts + 1] = Part
+            end
+        end
+    end
+    --
+    return Parts
+end
+--
+function Tyrisware:ValidateClient(Player)
+    local Object = Player.Character
+    local Humanoid = (Object and Object:FindFirstChild("Humanoid"))
+    local RootPart = (Humanoid and Object:FindFirstChild("HumanoidRootPart"))
+    --
+    return Object, Humanoid, RootPart
+end
+--
+function Languages:GetTranslation(String)
+    return String
+end
+--
+do -- utility
+    function utility:GetTableIndexes(Table, Custom)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table) do
+            Table2[Custom and Value[1] or #Table2 + 1] = Index 
+        end
+        --
+        return Table2
+    end
+    --
+    function utility:ConvertTable(Table1)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table1) do
+            Table2[typeof(Index) ~= "number" and Index or (#Table2 + 1)] = tostring(Value)
+        end
+        --
+        return Table2
+    end
+    --
+    function utility:ConvertString(Value)
+        if typeof(Value) == "Color3" then
+            Value = Value:ToHex()
+        end
+        --
+        return Value
+    end
+    --
+    function utility:Encode(Table)
+        local Table2 = {}
+        --
+        for Index, Value in pairs(Table) do
+            Table2[Index] = utility:ConvertString(Value)
+        end
+        --
+        return HttpService:JSONEncode(Table2)
+    end
+    --
+    function utility:Decode(Table)
+        return HttpService:JSONDecode(Table)
+    end
+    --
+    function Library:UpdateColor(ColorType, ColorValue)
+        local ColorType = ColorType:lower()
+        --
+        Theme[ColorType] = ColorValue
+        --
+        for Index, Value in pairs(Library.colors) do
+            for Index2, Value2 in pairs(Value) do
+                if Value2 == ColorType then
+                    Index[Index2] = Theme[Value2]
                 end
             end
+        end
+    end
+    --
+    function Library:UpdateTheme(ThemeType, ThemeValue)
+        if Flags["ConfigTheme_" .. ThemeType] then
+            Flags["ConfigTheme_" .. ThemeType]:Set(ThemeValue)
+        end
+    end
+    --
+    function Library:LoadTheme(ThemeType)
+        if Themes[ThemeType] then
+            local ThemeValue = utility:Decode(Themes[ThemeType][2])
             --
-            function window.VisualPreview:SetPreviewState(State)
-                window.VisualPreview.Fading = true
-                window.VisualPreview.State = State
-                --
-                task.spawn(function()
-                    for Index, Value in pairs(window.VisualPreview.Drawings) do
-                        utility:Lerp(Index, {Transparency = window.VisualPreview.State and Value or 0}, 0.2)
-                        utility:UpdateTransparency(Index, window.VisualPreview.State and Value or 0)
-                    end
-                end)
-                --
-                window.VisualPreview.Fading = false
+            for Index, Value in pairs(ThemeValue) do
+                Library:UpdateTheme(Index, Color3.fromHex(Value)) 
             end
-            --
-            function window.VisualPreview:SetComponentProperty(Component, Property, State, Index)
-                for Index2, Value in pairs(window.VisualPreview.Components[Component]) do
-                    if Index then
-                        Value[Index][Property] = State
+        end
+    end
+    --
+    function Library:RefreshConfigList()
+        Flags["ConfigConfiguration_Box"].options = Tyrisware.Configs
+        Flags["ConfigConfiguration_Box"]:Refresh()
+        Flags["ConfigConfiguration_Box"].current = Clamp(Flags["ConfigConfiguration_Box"].current, 0, #Tyrisware.Configs)
+    end
+    --
+    function Library:GetConfig()
+        local Config = ""
+        --
+        for Index, Value in pairs(Flags) do
+            print(Index, Value)
+            if Index ~= "ConfigConfiguration_Box" and Index ~= "ConfigConfiguration_Name" then
+                local Value2 = Value:Get()
+                local Final = ""
+                --
+                if typeof(Value2) == "Color3" then
+                    local Values = Value.current
+                    --
+                    Final = ("rgb(%s,%s,%s,%s)"):format(Values[1], Values[2], Values[3], Values[4])
+                elseif typeof(Value2) == "table" and Value2.Color and Value2.Transparency then
+                    local Values = Value.current
+                    --
+                    Final = ("rgb(%s,%s,%s,%s)"):format(Values[1], Values[2], Values[3], Values[4])
+                elseif Value.mode then
+                    local Values = Value.current
+                    --
+                    Final = ("key(%s,%s,%s)"):format(Values[1] or "nil", Values[2] or "nil", Value.mode)
+                elseif (Value2 ~= nil) then
+                    if typeof(Value2) == "boolean" then
+                        Value2 = ("bool(%s)"):format(tostring(Value2))
+                    elseif typeof(Value2) == "table" then
+                        local New = "table("
                         --
-                        if Property == "Transparency" then
-                            utility:UpdateTransparency(Value[Index], State)
-                            if window.VisualPreview.Drawings[Value[Index]] then
-                                window.VisualPreview.Drawings[Value[Index]] = State
+                        for Index2, Value3 in pairs(Value2) do
+                            New = New .. Value3 .. ","
+                        end
+                        --
+                        if New:sub(#New) == "," then
+                            New = New:sub(0, #New - 1)
+                        end
+                        --
+                        Value2 = New .. ")"
+                    elseif typeof(Value2) == "string" then
+                        Value2 = ("string(%s)"):format(Value2)
+                    elseif typeof(Value2) == "number" then
+                        Value2 = ("number(%s)"):format(Value2)
+                    end
+                    --
+                    Final = Value2
+                end
+                --
+                Config = Config .. Index .. ": " .. Final .. "\n"
+            end
+        end
+        print("DONE")
+        --
+        return Config .. "[ Tyrisware ]"
+    end
+    --
+    function Library:LoadConfig(Config)
+        if typeof(Config) == "table" then
+            for Index, Value in pairs(Config) do
+                if typeof(Flags[Index]) ~= "nil" then
+                    Flags[Index]:Set(Value)
+                end
+            end
+        end
+    end
+    --
+    function Library:PerformConfigAction(ConfigName, Action)
+        local Split = string.split
+        if ConfigName then
+            if Action == "Delete" then
+                local Found = Find(Tyrisware.Configs, ConfigName)
+                --
+                if Found then
+                    delfile(("Tyrisware/Configs/%s"):format(ConfigName .. ".Tyrisware"), Config)
+                    Remove(Tyrisware.Configs, Found) 
+                    Library:RefreshConfigList()
+                end
+                --
+                delfile(("Tyrisware/Configs/%s"):format(ConfigName .. ".Tyrisware"), Config)
+            elseif Action == "Save" then
+                local Config = Library:GetConfig()
+                --
+                if Config then
+                    print("Config is true")
+                    if not Find(Tyrisware.Configs, ConfigName) then
+                        print("Config not found")
+                        writefile(("Tyrisware/Configs/%s"):format(ConfigName .. ".Tyrisware"), Config)
+                        table.insert(Tyrisware.Configs, ConfigName)
+                        Library:RefreshConfigList()
+                    end
+                    --
+                    writefile(("Tyrisware/Configs/%s"):format(ConfigName .. ".Tyrisware"), Config)
+                end
+            elseif Action == "Load" then
+                local Config = readfile(("Tyrisware/Configs/%s"):format(ConfigName .. ".Tyrisware"))
+                local Table = Split(Config, "\n")
+                local Table2 = {}
+                --
+                if Table[#Table] == "[ Tyrisware ]" then
+                    Remove(Table, #Table)
+                end
+                --
+                for Index, Value in pairs(Table) do
+                    local Table3 = Split(Value, ":")
+                    --
+                    if Table3[1] ~= "ConfigConfiguration_Name" and #Table3 >= 2 then
+                        local Value = Table3[2]:sub(2, #Table3[2])
+                        --
+                        if Value:sub(1, 3) == "rgb" then
+                            local Table4 = Split(Value:sub(5, #Value - 1), ",")
+                            --
+                            Value = Table4
+                        elseif Value:sub(1, 3) == "key" then
+                            local Table4 = Split(Value:sub(5, #Value - 1), ",")
+                            --
+                            if Table4[1] == "nil" and Table4[2] == "nil" then
+                                Table4[1] = nil
+                                Table4[2] = nil
                             end
+                            --
+                            Value = Table4
+                        elseif Value:sub(1, 4) == "bool" then
+                            local Bool = Value:sub(6, #Value - 1)
+                            --
+                            Value = Bool == "true"
+                        elseif Value:sub(1, 5) == "table" then
+                            local Table4 = Split(Value:sub(7, #Value - 1), ",")
+                            --
+                            Value = Table4
+                        elseif Value:sub(1, 6) == "string" then
+                            local String = Value:sub(8, #Value - 1)
+                            --
+                            Value = String
+                        elseif Value:sub(1, 6) == "number" then
+                            local Number = tonumber(Value:sub(8, #Value - 1))
+                            --
+                            Value = Number
                         end
-                    else
-                        Value[Property] = State
                         --
-                        if Property == "Transparency" then
-                            utility:UpdateTransparency(Value, State)
-                            if window.VisualPreview.Drawings[Value] then
-                                window.VisualPreview.Drawings[Value] = State
-                            end
-                        end
-                    end 
+                        Table2[Table3[1]] = Value
+                    end
                 end
+                -- 
+                Library:LoadConfig(Table2)
+            end
+        end
+    end
+    --
+    local Math = {}
+    function Math:Shift(num) 
+        return num * 10
+    end
+    --
+    function Library:UpdateHue()
+        if (tick() - Tyrisware.Locals.ShiftTick) >= (1 / 60) then
+            Tyrisware.Locals.Shift = Tyrisware.Locals.Shift + 0.01
+            --
+            if Flags["ConfigTheme_AccentEffect"]:Get() == "Rainbow" then
+                Library:UpdateColor("Accent", Color3.fromHSV( tick() % 5 / 5, 0.55, 1))
+            elseif Flags["ConfigTheme_AccentEffect"]:Get() == "Shift" then
+                local Hue, Saturation, Value = Flags["ConfigTheme_Accent"]:Get():ToHSV()
+                --
+                Library:UpdateColor("Accent", Color3.fromHSV(Math:Shift(Hue + (Math:Shift(Tyrisware.Locals.Shift) * (Flags["ConfigTheme_EffectLength"]:Get() / 360))), Saturation, Value))
+            elseif Flags["ConfigTheme_AccentEffect"]:Get() == "Reverse Shift" then
+                local Hue, Saturation, Value = Flags["ConfigTheme_Accent"]:Get():ToHSV()
+                --
+                Library:UpdateColor("Accent", Color3.fromHSV(Math:Shift(Clamp(Hue - (Math:Shift(Tyrisware.Locals.Shift) * (Flags["ConfigTheme_EffectLength"]:Get() / 360)), 0, 9999)), Saturation, Value))
             end
             --
-            function window.VisualPreview:SetComponentSelfProperty(Component, Self, Property, State, Index)
-                if Index then
-                    window.VisualPreview.Components[Component][Self][Index][Property] = State
-                    --
-                    if Property == "Transparency" then
-                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self][Index], State)
-                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] then
-                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] = State
-                        end
-                    end
-                else
-                    window.VisualPreview.Components[Component][Self][Property] = State
-                    --
-                    if Property == "Transparency" then
-                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self], State)
-                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] then
-                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] = State
-                        end
-                    end
-                end 
+            Tyrisware.Locals.ShiftTick = tick()
+        end
+    end
+    --
+    function utility:ClampString(String, Length, Font)
+        local Font = (Font or 2)
+        local Split = String:split("\n")
+        --
+        local Clamped = ""
+        --
+        for Index, Value2 in pairs(Split) do
+            if (Index * 13) <= Length then
+                Clamped = Clamped .. Value2 .. (Index == #Split and "" or "\n")
+            end
+        end
+        --
+        return (Clamped ~= String and (Clamped == "" and "" or Clamped:sub(0, #Clamped - 1) .. " ...") or Clamped)
+    end
+    --
+    function utility:ThreadFunction(Func, Name, ...)
+        local Func = Name and function()
+            local Passed, Statement = pcall(Func)
+            --
+            if not Passed and not Tyrisware.Safe then
+                warn("Tyrisware:\n", "              " .. Name .. ":", Statement)
+            end
+        end or Func
+        local Thread = coroutine.create(Func)
+        --
+        coroutine.resume(Thread, ...)
+        return Thread
+    end
+    --
+    function utility:SafeCheck(Text)
+        local Safe = Text:lower()
+        --
+        for Index, Value in pairs(Tyrisware.Locals.BadWords) do Safe = Safe:gsub(Value, "_") end
+        --
+        return Safe
+    end
+    --
+    function utility:TableToString(Table)
+        if #Table > 1 then
+            local Text = ""
+            --
+            for Index, Value in pairs(Table) do
+                Text = Text .. Value .. "\n"
             end
             --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and esppreview_visiblebutton.Visible and window.isVisible and utility:MouseOverDrawing({esppreview_visiblebutton.Position.X, esppreview_visiblebutton.Position.Y, esppreview_visiblebutton.Position.X + esppreview_visiblebutton.TextBounds.X, esppreview_visiblebutton.Position.Y + esppreview_visiblebutton.TextBounds.Y}) and not window:IsOverContent() then
-                    window.VisualPreview.Visible = not window.VisualPreview.Visible
-                    esppreview_visiblebutton.Text = window.VisualPreview.Visible and "O" or "0"
-                end
-            end
-            --
-            do -- Preview Stuff
-                local preview_boxoutline = utility:Create("Frame", {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox}, {
-                    Size = BoxSize,
-                    Position = utility:Position(1, -(BoxSize.X - 1), 0, 20, esppreview_frame_previewbox),
-                    Color = Color3.fromRGB(0, 0, 0),
-                    Filled = false,
-                    Thickness = 2.5
-                }, window.VisualPreview.Drawings);boxoutline = preview_boxoutline
-                --
-                local preview_box = utility:Create("Frame", {Vector2.new(0, 0), preview_boxoutline}, {
-                    Size = utility:Size(1, 0, 1, 0, preview_boxoutline),
-                    Position = utility:Position(0, 0, 0, 0, preview_boxoutline),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Filled = false,
-                    Thickness = 0.6
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_heatlhbaroutline = utility:Create("Frame", {Vector2.new(-6, -1), preview_boxoutline}, {
-                    Size = utility:Size(0, 4, 1, 2, preview_boxoutline),
-                    Position = utility:Position(0, -6, 0, -1, preview_boxoutline),
-                    Color = Color3.fromRGB(0, 0, 0),
-                    Filled = true
-                }, window.VisualPreview.Drawings);healthbaroutline = preview_heatlhbaroutline
-                --
-                local preview_heatlhbar = utility:Create("Frame", {Vector2.new(1, 1), preview_heatlhbaroutline}, {
-                    Size = utility:Size(1, -2, 1, -2, preview_heatlhbaroutline),
-                    Position = utility:Position(0, 1, 0, 1, preview_heatlhbaroutline),
-                    Color = Color3.fromRGB(255, 0, 0),
-                    Filled = true
-                }, window.VisualPreview.Drawings);healthbar = preview_heatlhbar
-                --
-                local preview_title = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, -20), preview_box}, {
-                    Text = "Username",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 0, -20, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_distance = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 5), preview_box}, {
-                    Text = "25m",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 1, 5, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_tool = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 20), preview_box}, {
-                    Text = "Weapon",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 1, 20, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_character = utility:Create("Frame", {Vector2.new(46/2, 40/2), preview_box}, {
-                    Size = utility:Size(1, -46, 1, -40, preview_box),
-                    Position = utility:Position(0, (46/2), 0, (40/2), preview_box),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Transparency = 0
-                }, window.VisualPreview.Drawings)
-                --
-                do -- Chams
-                    for Index = 1, 2 do
-                        local transparency = Index == 1 and 0.75 or 0.5
-                        local color = Index == 1 and Color3.fromRGB(93, 62, 152) or Color3.fromRGB(255, 255, 255)
-                        --
-                        local extrasize = Index == 1 and 4 or 0
-                        local extraoffset = Index == 1 and -2 or 0
-                        --
-                        local preview_character_head = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.35) + (extraoffset), extraoffset), preview_character}, {
-                            Size = utility:Size(0.3, extrasize, 0.2, 0, preview_character),
-                            Position = utility:Position(0.35, extraoffset, 0, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_torso = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.5, extrasize, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_leftarm = utility:Create("Frame", {Vector2.new(extraoffset, (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_rightarm = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.75) + (extraoffset + extrasize), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0.75, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_leftleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
-                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_rightleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.5) + (extraoffset + (extrasize / 2)), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
-                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        window.VisualPreview.Components.Chams["Head"][Index] = preview_character_head
-                        window.VisualPreview.Components.Chams["Torso"][Index] = preview_character_torso
-                        window.VisualPreview.Components.Chams["LeftArm"][Index] = preview_character_leftarm
-                        window.VisualPreview.Components.Chams["RightArm"][Index] = preview_character_rightarm
-                        window.VisualPreview.Components.Chams["LeftLeg"][Index] = preview_character_leftleg
-                        window.VisualPreview.Components.Chams["RightLeg"][Index] = preview_character_rightleg
-                    end
-                end
-                --
-                do -- Skeleton
-                    for Index = 1, 2 do
-                        local skeletonsize = Vector2.new(Index == 1 and 3 or 1, Index == 1 and -10 or -12)
-                        local skeletonoffset = Vector2.new(Index == 1 and -1 or 0, Index == 1 and 5 or 6)
-                        local transparency = 0.5
-                        local color = Index == 1 and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-                        --
-                        local preview_skeleton_head = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Head"][2].Size.X * 0.5) + skeletonoffset.X, (window.VisualPreview.Components.Chams["Head"][2].Size.Y * 0.5) + skeletonoffset.Y), window.VisualPreview.Components.Chams["Head"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 0.5, 0, window.VisualPreview.Components.Chams["Head"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0.5, skeletonoffset.Y, window.VisualPreview.Components.Chams["Head"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_torso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["Torso"][2]}, {
-                            Size = utility:Size(1, skeletonsize.X + window.VisualPreview.Components.Chams["LeftArm"][2].Size.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Position = utility:Position(0, skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_leftarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftArm"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_rightarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightArm"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_hips = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 1) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
-                            Size = utility:Size(1, skeletonsize.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_leftleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_rightleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightLeg"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_hipstorso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y + (Index == 1 and 3 or 1)), window.VisualPreview.Components.Chams["Torso"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, Index == 1 and -3 or -1, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y + (Index == 1 and 3 or 1), window.VisualPreview.Components.Chams["Torso"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        window.VisualPreview.Components.Skeleton["Head"][Index] = preview_skeleton_head
-                        window.VisualPreview.Components.Skeleton["Torso"][Index] = preview_skeleton_torso
-                        window.VisualPreview.Components.Skeleton["LeftArm"][Index] = preview_skeleton_leftarm
-                        window.VisualPreview.Components.Skeleton["RightArm"][Index] = preview_skeleton_rightarm
-                        window.VisualPreview.Components.Skeleton["Hips"][Index] = preview_skeleton_hips
-                        window.VisualPreview.Components.Skeleton["LeftLeg"][Index] = preview_skeleton_leftleg
-                        window.VisualPreview.Components.Skeleton["RightLeg"][Index] = preview_skeleton_rightleg
-                        window.VisualPreview.Components.Skeleton["HipsTorso"][Index] = preview_skeleton_hipstorso
-                    end
-                end
-                --
-                local preview_boxfill = utility:Create("Frame", {Vector2.new(1, 1), preview_boxoutline}, {
-                    Size = utility:Size(1, -2, 1, -2, preview_boxoutline),
-                    Position = utility:Position(0, 1, 0, 1, preview_boxoutline),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Filled = true,
-                    Transparency = 0.9
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_flags = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X -56, 5), preview_box}, {
-                    Text = "Flags ->", --Display\nMoving\nJumping\nDesynced"
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = Color3.fromRGB(255, 255, 255),
-                    OutlineColor = theme.textborder,
-                    Center = false,
-                    Position = utility:Position(1, -56, 0, 5, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_healthbarvalue = utility:Create("TextLabel", {Vector2.new(0, 5), preview_heatlhbar}, {
-                    Text = "<- Number", --Display\nMoving\nJumping\nDesynced"
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = Color3.fromRGB(0, 255, 0),
-                    OutlineColor = theme.textborder,
-                    Center = false,
-                    Position = utility:Position(0, 0, 0, 5, preview_heatlhbar)
-                }, window.VisualPreview.Drawings);healthvalue = preview_healthbarvalue
-                --
-                window.VisualPreview.Components.Title["Text"] = preview_title
-                window.VisualPreview.Components.Distance["Text"] = preview_distance
-                window.VisualPreview.Components.Tool["Text"] = preview_tool
-                window.VisualPreview.Components.Flags["Text"] = preview_flags
-                window.VisualPreview.Components.Box["Outline"] = preview_boxoutline
-                window.VisualPreview.Components.Box["Box"] = preview_box
-                window.VisualPreview.Components.Box["Fill"] = preview_boxfill
-                window.VisualPreview.Components.HealthBar["Outline"] = preview_heatlhbaroutline
-                window.VisualPreview.Components.HealthBar["Box"] = preview_heatlhbar
-                window.VisualPreview.Components.HealthBar["Value"] = preview_healthbarvalue
-            end
+            return Text:sub(0, #Text - 1)
+        else
+            return Table[1]
+        end
+    end
+    --
+    function utility:MousePosition(Offset)
+        if Offset then
+            return UserInputService:GetMouseLocation() + Tyrisware:CursorOffset()
+        else
+            return UserInputService:GetMouseLocation()
+        end
+    end
+    --
+    function utility:Console(Action, ...)
+        if not Tyrisware.Safe then
+            Action(...)
+        end
+    end
+    
+end
 
 return library, utility, library.pointers, theme
+
